@@ -11,13 +11,13 @@ d3.json(queryUrl, function (data) {
 function createFeatures(earthquakeData) {
   var earthquakes = L.geoJSON(earthquakeData, {
     onEachFeature: function (feature, layer) {
-      layer.bindPopup("<h3>" + feature.properties.place + "</h3><hr><p>" + new Date(feature.properties.time) + "</p>" + "<p>" + "Depth: " + feature.geometry['coordinates'][2] + "</p>" + "<p>" + "Mag : " + feature.properties.mag + "</p>")
+      layer.bindPopup("<h3>" + feature.properties.place + "</h3><hr><p>" + new Date(feature.properties.time) + "</p>" + "<p>" + "Depth: " + feature.geometry['coordinates'][2] + " km" + "</p>" + "<p>" + "Mag : " + feature.properties.mag + "</p>")
     },
     pointToLayer: function (feature, latlng) {
       return new L.circle(latlng, {
           radius: radiusSize(feature.properties.mag),
-          fillColor: getColor(feature.geometry['coordinates'][2]),
-          fillOpacity: .75,
+          fillColor: chooseColor(feature.geometry['coordinates'][2]),
+          fillOpacity: .99999,
           color: "white"
       })
     }
@@ -26,7 +26,7 @@ function createFeatures(earthquakeData) {
 };
 
 function createMap(earthquakes) {
-  // Define map layers
+  // Define base layers
   var outdoorsmap = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
     attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
     tileSize: 512,
@@ -60,7 +60,7 @@ function createMap(earthquakes) {
     "Tectonic Plates": tectonicPlates
   };
   // Create map, providing layers to display
-  var myMap = L.map("mapid", {
+  var myMap = L.map("map", {
     center: [
       37.09, -95.71
     ],
@@ -69,8 +69,8 @@ function createMap(earthquakes) {
   });
   d3.json(platesUrl, function (tectData) {
     L.geoJSON(tectData, {
-      color: "blue",
-      weight: 2
+      color: "red",
+      weight: 1
     }).addTo(tectonicPlates)
   });
   // Create layer control, and add to map
@@ -78,32 +78,83 @@ function createMap(earthquakes) {
     collapsed: false
   }).addTo(myMap);
 
-  // Create legend https://gis.stackexchange.com/questions/193161/add-legend-to-leaflet-map
-  var legend = L.control({position: "bottomleft"});
+  // Create legend
+  var info = L.control({position: "bottomright"});
 
-  legend.onAdd = function () {
-    var div = L.DomUtil.create('div', 'info legend'),
-    grades = [0, 5, 10, 15, 20],
-    labels = [],
-    colors = ["blue", "green", "yellow", "orange", "red"];
-
-    for (var i = 0; i < grades.length; i++) {
-      div.innerHTML +=
-        '<i style=background:' + getColor(grades[i] + 1) + '"></i>' + grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+')
-    }
-    return div
+  info.onAdd = function () {
+    var div = L.DomUtil.create("div", "legend");
+    return div;
   }
-  legend.addTo(myMap);
+    
+  info.addTo(myMap);
+  
+  document.querySelector(".legend").innerHTML=displayLegend();
+  
+  function displayLegend(){
+    var legendInfo = [{
+        limit: "0-5 km",
+        color: '#FFFF00'
+    },{
+        limit: "5-10 km",
+        color: '#FFA500'
+    },{
+        limit: "10-15 km",
+        color: '#FF4500'
+    },{
+        limit: "15-20 km",
+        color: '#FF0000'
+    },{
+        limit: "20+ km",
+        color: '#800000'
+    }];
+
+    var header = "<h3 style = \"color:green; text-align:center;\">Depth</h3><hr>";
+
+    var strng = "";
+
+    for (i = 0; i < legendInfo.length; i++){
+        strng += "<p style = \"background-color: "+legendInfo[i].color+"; text-align:center;\"><strong style = \"color:SeaGreen\">"+legendInfo[i].limit+"</strong></p> "
+    };
+    
+    return header+strng;
+
+  }
 }
 
 // Marker functions
 function radiusSize(mag) {
-  return mag * 50000
+  return mag * 25000
 }
-function getColor(d) {
-  return d > 20 ? 'red' :
-         d > 15 ? 'orange' :
-         d > 10 ? 'yellow' :
-         d > 5  ? 'green' :
-                  'blue';
+function chooseColor(d) {
+  // switch(true){
+  //   case (d > 20):
+  //       return '#800000';
+  //   case (d > 15):
+  //       return '#FF0000';
+  //   case (d > 10):
+  //       return '#FF4500';
+  //   case (d > 5):
+  //       return '#FFA500';
+  //   default:
+  //       return '#FFFF00';
+  // };
+
+  // if (d > 20) {
+  //   var outcome = '#800000';
+  // } else if (d > 15) {
+  //   var outcome = '#FF0000';
+  // } else if (d > 10) {
+  //   var outcome = '#FF4500';
+  // } else if (d > 5) {
+  //   var outcome = '#FFA500';
+  // } else {
+  //   var outcome = '#FFFF00';
+  // }
+  // return outcome;
+
+  return d > 20 ? '#800000' :
+         d > 15 ? '#FF0000' :
+         d > 10 ? '#FF4500' :
+         d > 5  ? '#FFA500' :
+                  '#FFFF00';
 }
